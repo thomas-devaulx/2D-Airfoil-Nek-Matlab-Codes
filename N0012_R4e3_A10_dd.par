@@ -1,0 +1,25 @@
+#
+# nek parameter file
+#
+[GENERAL]
+stopAt = endTime
+endTime = 60		# same parameter as Kurtulus 2016 paper; t* = tU/c
+writeinterval = 500
+variabledt = yes
+targetCFL = 3.5
+extrapolation = OIFS
+
+userParam02 = 1			#mean velocity in x-direction [m/s] (used)
+
+
+[VELOCITY]
+density = 1.0		#[kg/m^3]
+viscosity = -4000       # sets the reynolds number when a negative sign is placed
+residualTol = 1e-4
+
+
+[PRESSURE]
+residualTol = 1e-4
+residualProj = yes
+
+

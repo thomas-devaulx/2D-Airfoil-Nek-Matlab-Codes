@@ -8,6 +8,6 @@ Matlab codes to:
 Nek5000 codes:
 - SIZE, .usr, and .par files
 - example output forces.txt file
-- example output N0012_R4e3_A100.f00XXX file
+- example output N0012_R4e3_A100.f00XXX file as a release
 
 Example file are provided for a NACA0012 airfoil, at an Angle Of Attack (AOA) of 10 degrees and Reynolds number of 4000.

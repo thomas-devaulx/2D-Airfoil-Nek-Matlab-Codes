@@ -2,7 +2,7 @@
 
 Matlab codes to:
 - Create a .geo file for mesh generation
-  - 
+  - mesh_generator.m
 - Process aerodynamic forces and Strouhal number
   - forces.m and strouhal.m
 - Picture the flow field and process information about it

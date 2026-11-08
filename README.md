@@ -9,8 +9,10 @@ Matlab codes to:
   - vort_post_proc.m
 
 Nek5000 codes:
-- SIZE, .usr, and .par files
-- example output forces.txt file
-- example output N0012_R4e3_A100.f00XXX file as a release
-
-Example file are provided for a NACA0012 airfoil, at an Angle Of Attack (AOA) of 10 degrees and Reynolds number of 4000.
+- NACA 0012, Re = 4000, AOA = 10, 2D, -- N0012_R4e3_A08
+  - .usr and .par files
+  - example output forces.txt file
+  - example output N0012_R4e3_A100.f00XXX file as a release
+- NACA 0012, Re=5000, AOA = 8, 3D, -- N0012_R5e3_A08
+  - .usr, .par, SIZE files
+  - .msh file from Gmsh (requires gmsh2nek)  

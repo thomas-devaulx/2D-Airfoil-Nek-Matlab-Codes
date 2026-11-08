@@ -1,0 +1,25 @@
+#
+# nek parameter file
+#
+[GENERAL]
+stopAt = endTime
+endTime = 120	
+writeinterval = 100
+variabledt = no
+dt = 1e-4
+
+userParam02 = 1			#mean velocity in x-direction [m/s] (used)
+
+
+[VELOCITY]
+density = 1.0		#[kg/m^3]
+viscosity = -5000       # sets the reynolds number when a negative sign is placed
+residualTol = 1e-4
+
+
+[PRESSURE]
+preconditioner = semg_amg
+residualTol = 1e-4
+residualProj = yes
+
+

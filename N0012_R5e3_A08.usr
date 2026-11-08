@@ -1,0 +1,235 @@
+c-----------------------------------------------------------------------
+c  nek5000 user-file template
+c
+c  user specified routines:
+c     - uservp  : variable properties
+c     - userf   : local acceleration term for fluid
+c     - userq   : local source term for scalars
+c     - userbc  : boundary conditions
+c     - useric  : initial conditions
+c     - userchk : general purpose routine for checking errors etc.
+c     - userqtl : thermal divergence for low Mach number flows 
+c     - usrdat  : modify element vertices 
+c     - usrdat2 : modify mesh coordinates
+c     - usrdat3 : general purpose routine for initialization
+c     
+c-----------------------------------------------------------------------
+      subroutine uservp(ix,iy,iz,eg) ! set variable properties
+
+c      implicit none
+
+      integer ix,iy,iz,eg
+     
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e
+c     e = gllel(eg)
+
+      udiff  = 0.0
+      utrans = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf(ix,iy,iz,eg) ! set acceleration term
+c
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+c
+c      implicit none
+
+      integer ix,iy,iz,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e
+c     e = gllel(eg)
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq(ix,iy,iz,eg) ! set source term
+
+c      implicit none
+
+      integer ix,iy,iz,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e
+c     e = gllel(eg)
+
+      qvol   = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc(ix,iy,iz,iside,eg) ! set up boundary conditions
+c
+c     NOTE ::: This subroutine MAY NOT be called by every process
+c
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer ix,iy,iz,iside,eg,ie
+      real H,um,qpp,Tin,con,term
+      character*3 cb3
+
+      ie = gllel(eg)  ! get local element number
+      cb3 = cbc(iside,ie,1) ! access the velocity boundary condition
+
+      if (cb3.eq.'v  ') then
+        ux   = uparam(2)
+        uy   = 0.0
+        uz   = 0.0
+        temp = 0.0
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg)
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer ix,iy,iz,eg
+      real my_pi, u_inf, amp, x0, my_sigma, window_x
+
+      ! Declare constants
+      my_pi    = 4.0 * atan(1.0)
+      u_inf = uparam(2)
+
+      ! Default background flow
+      ux   = u_inf
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+
+      ! --- Apply Smooth Upstream Sinusoidal Perturbation ---
+      if (y .lt. 4.5 .and. y .gt. -4.5 .and. 
+     &    x .lt. -0.5 .and. x .gt. -2.5) then
+
+         ! Gaussian window centered at x = -1.5 to eliminate sharp edge ringing
+         x0       = -1.5
+         my_sigma    = 0.25
+         window_x = exp(-((x - x0)**2) / (2.0 * my_sigma**2))
+
+         amp = 0.20 * u_inf  ! 20% fluctuation amplitude
+
+         ! Smoothly windowed velocity perturbation
+         ux = u_inf + amp * cos(my_pi * y) * window_x
+         uy = 0.0
+         uz = 0.0
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      real x0(3)
+      save x0
+      data x0 /0.0, 0.0, 0.0/
+
+      ! Compute aerodynamic forces on all boundaries marked as 'W  '
+      call torque_calc(1.0, x0, .false., .true.)
+
+      ! Only node 0 should handle file I/O to avoid race conditions
+      if (nid.eq.0) then
+         
+         ! Open the text file at the very first timestep
+         if (istep.eq.0) then
+            open(unit=55, file='forces.txt', status='replace')
+            write(55,'(A)') 'Time             Drag_X           Lift_Y'
+         endif
+
+         ! Write the current time, drag, and lift to the file.
+         ! torque_calc stores total forces in dragx(0) and dragy(0)
+         write(55,'(3E17.8)') time, dragx(0), dragy(0)
+
+         ! Flush the buffer so the file updates dynamically while the simulation runs
+         call flush(55)
+
+         write(6,'(I7,3E15.6)') istep, time, dragx(0), dragy(0)         
+
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userqtl ! Set thermal divergence
+
+      call userqtl_scig 
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat()   ! This routine to modify element vertices
+
+c      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2()  ! This routine to modify mesh coordinates
+
+c      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      do iel=1,nelv
+      do ifc=1,2*ndim
+        id_face = BoundaryID(ifc,iel)
+        if (id_face.eq.1) then        ! surface 1 for airfoil (no-slip wall)
+           cbc(ifc,iel,1) = 'W  '
+        elseif (id_face.eq.2) then    ! surface 2 for inlet
+           cbc(ifc,iel,1) = 'v  '
+        elseif (id_face.eq.3) then    ! surface 3 for outlet
+           cbc(ifc,iel,1) = 'O  '
+	elseif (id_face.eq.4) then    ! surface 4 for P1
+	   cbc(ifc,iel,1) = 'P  '
+	elseif (id_face.eq.5) then    ! surface 5 for P2
+	   cbc(ifc,iel,1) = 'P  '
+        endif
+      enddo
+      enddo
+      
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer bIDs(1)
+      integer iobj_wall
+
+      ! Group BoundaryID 1 (the airfoil) into Object 1
+      bIDs(1) = 1
+      call create_obj(iobj_wall, bIDs, 1)
+
+      return
+      end
